@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hangman Game</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', 'Helvetica Neue', sans-serif;
+      background: #111827;
+      color: #f9fafb;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .screen {
+      display: none;
+      padding: 40px 20px;
+      max-width: 700px;
+      width: 100%;
+      text-align: center;
+      background: #1f2937;
+      border-radius: 12px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+      animation: fadeIn 0.4s ease-out;
+    }
+
+    #start-screen { display: block; }
+
+    h1 {
+      font-size: 2.4em;
+      margin-bottom: 20px;
+      color: #facc15;
+    }
+
+    button {
+      align-items: center;
+      background-image: linear-gradient(144deg, #af40ff, #5b42f3 50%, #00ddeb);
+      border: 0;
+      border-radius: 8px;
+      box-shadow: rgba(151, 65, 252, 0.2) 0 15px 30px -5px;
+      box-sizing: border-box;
+      color: #ffffff;
+      display: flex;
+      font-size: 18px;
+      justify-content: center;
+      line-height: 1em;
+      min-width: 140px;
+      padding: 3px;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin: 10px auto;
+    }
+
+    button span {
+      background-color: rgb(5, 6, 45);
+      padding: 16px 24px;
+      border-radius: 6px;
+      width: 100%;
+      height: 100%;
+      font-weight: bold;
+      transition: 300ms;
+    }
+
+    button:hover span { background: none; }
+    button:active { transform: scale(0.95); }
+
+    #word-display {
+      font-size: 2em;
+      letter-spacing: 12px;
+      margin: 25px 0;
+      font-weight: bold;
+    }
+
+    #letters {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .letter {
+      background-color: #374151;
+      padding: 12px 16px;
+      border-radius: 6px;
+      font-weight: bold;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+
+    .letter:hover { background-color: #6b7280; }
+
+    .letter.used {
+      background-color: #9ca3af;
+      color: #111827;
+      pointer-events: none;
+    }
+
+    #hint {
+      margin-top: 15px;
+      color: #fbbf24;
+      font-style: italic;
+      display: none;
+    }
+
+    #message {
+      font-size: 1.3em;
+      margin-top: 20px;
+      font-weight: bold;
+    }
+
+    #scoreboard {
+      font-size: 1.2em;
+      color: #60a5fa;
+      margin-bottom: 15px;
+    }
+
+    .hangman {
+      width: 160px;
+      height: 240px;
+      margin: 0 auto 20px;
+      position: relative;
+    }
+
+    .hangman div {
+      position: absolute;
+      background: #f3f4f6;
+    }
+
+    .stand { height: 100%; width: 8px; left: 0; top: 0; background: #9ca3af; }
+    .beam { width: 100px; height: 8px; left: 0; top: 0; background: #9ca3af; }
+    .rope { width: 4px; height: 30px; left: 92px; top: 8px; background: #9ca3af; }
+
+    .head, .body, .arm-left, .arm-right, .leg-left, .leg-right { display: none; }
+
+    .head { width: 30px; height: 30px; border-radius: 50%; top: 38px; left: 77px; }
+    .body { width: 4px; height: 50px; top: 68px; left: 92px; }
+    .arm-left, .arm-right { width: 30px; height: 4px; top: 90px; }
+    .arm-left { left: 62px; transform: rotate(-30deg); }
+    .arm-right { left: 92px; transform: rotate(30deg); }
+    .leg-left, .leg-right { width: 30px; height: 4px; top: 118px; }
+    .leg-left { left: 62px; transform: rotate(30deg); }
+    .leg-right { left: 92px; transform: rotate(-30deg); }
+
+    @media (max-width: 600px) {
+      .screen { padding: 20px 10px; }
+      #word-display { font-size: 1.5em; letter-spacing: 6px; }
+      .hangman { transform: scale(0.8); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Start Screen -->
+  <div class="screen" id="start-screen">
+    <h1>Hangman Challenge</h1>
+    <button onclick="showGameScreen()"><span>Start Game</span></button>
+    <button onclick="showExitScreen()"><span>Exit</span></button>
+  </div>
+
+  <!-- Game Screen -->
+  <div class="screen" id="game-screen">
+    <h1>Guess the Word</h1>
+    <div class="hangman">
+      <div class="stand"></div>
+      <div class="beam"></div>
+      <div class="rope"></div>
+      <div class="head"></div>
+      <div class="body"></div>
+      <div class="arm-left"></div>
+      <div class="arm-right"></div>
+      <div class="leg-left"></div>
+      <div class="leg-right"></div>
+    </div>
+
+    <div id="scoreboard">Score: 0</div>
+    <div id="word-display"></div>
+    <div id="letters"></div>
+    <div id="hint"></div>
+    <div id="message"></div>
+    <button onclick="startGame()"><span>Next Round</span></button>
+  </div>
+
+  <!-- Exit Screen -->
+  <div class="screen" id="exit-screen">
+    <h1>Thanks for playing!</h1>
+    <p>See you next time 🕹️</p>
+  </div>
+
+  <audio id="sound-correct" src="https://cdn.pixabay.com/audio/2022/03/15/audio_6bba053d2f.mp3"></audio>
+  <audio id="sound-wrong" src="https://cdn.pixabay.com/audio/2022/03/15/audio_8b1ff2f9e1.mp3"></audio>
+
+  <script>
+    const words = [
+      { word: "elixir", hint: "A magical potion" },
+      { word: "apocalypse", hint: "Complete final destruction" },
+      { word: "apple", hint: "A red or green fruit, keeps the doctor away." },
+{ word: "dog", hint: "A loyal animal, often called man's best friend." },
+{ word: "sun", hint: "The star at the center of our solar system." },
+{ word: "car", hint: "A vehicle with four wheels." },
+{ word: "book", hint: "You read it to gain knowledge or for fun." },
+{ word: "ball", hint: "Used in many sports, round in shape." },
+{ word: "cat", hint: "A small, furry pet that purrs." },
+{ word: "tree", hint: "Grows leaves, gives shade and oxygen." },
+{ word: "pen", hint: "Used to write with ink." },
+{ word: "shoe", hint: "Worn on your feet." },
+{ word: "fish", hint: "Lives in water, swims with fins." },
+{ word: "milk", hint: "White liquid, comes from cows." },
+{ word: "hat", hint: "Worn on your head." },
+{ word: "cake", hint: "Sweet dessert, often seen at birthdays." },
+{ word: "bus", hint: "Transports many people on roads." },
+{ word: "frog", hint: "A green amphibian that jumps." },
+{ word: "rain", hint: "Water falling from clouds." },
+{ word: "nose", hint: "Part of the face, used to smell." },
+{ word: "door", hint: "You open and close it to enter." },
+{ word: "cup", hint: "Used to drink tea or coffee." },
+{ word: "chair", hint: "You sit on it." },
+{ word: "cake", hint: "Sweet baked treat, usually frosted." },
+{ word: "duck", hint: "A bird that quacks and swims." },
+{ word: "train", hint: "Long vehicle that runs on tracks." },
+{ word: "balloon", hint: "Filled with air, floats and pops." },
+{ word: "guitar", hint: "A musical instrument with strings." },
+{ word: "bottle", hint: "Container used for liquids." },
+{ word: "planet", hint: "A large body orbiting a star." },
+{ word: "pirate", hint: "Sails the seas and looks for treasure." },
+{ word: "jungle", hint: "A dense forest with wild animals." },
+{ word: "market", hint: "Place to buy and sell goods." },
+{ word: "castle", hint: "A large building where kings live." },
+{ word: "soccer", hint: "A sport played with a round ball and feet." },
+{ word: "dragon", hint: "Mythical creature that breathes fire." },
+{ word: "rocket", hint: "Travels to space, very fast." },
+{ word: "bridge", hint: "Connects two places over water." },
+{ word: "ballet", hint: "A graceful form of dance." },
+{ word: "circus", hint: "Clowns and acrobats perform here." },
+{ word: "desert", hint: "Hot and sandy, with little rain." },
+{ word: "window", hint: "Glass opening to see outside." },
+{ word: "trophy", hint: "Prize for winning." },
+{ word: "doctor", hint: "Helps you when you’re sick." },
+{ word: "camera", hint: "Used to take pictures." },
+{ word: "island", hint: "Land surrounded by water." },
+{ word: "monkey", hint: "Climbs trees and eats bananas." },
+{ word: "parachute", hint: "Slows you down when falling from the sky." },
+{ word: "volleyball", hint: "A sport where players hit a ball over a net." },
+{ word: "museum", hint: "Place where historical items are displayed." },
+{ word: "telescope", hint: "Used to look at stars and planets." },
+{ word: "glacier", hint: "A slowly moving mass of ice." },
+  // 🟢 Easy
+  { word: "lamp", hint: "Lights up a room." },
+  { word: "tree", hint: "Has leaves and gives shade." },
+  { word: "bird", hint: "Has wings and flies." },
+  { word: "bread", hint: "You eat it, often with butter." },
+  { word: "rain", hint: "Falls from clouds." },
+  { word: "cake", hint: "Sweet, often eaten at birthdays." },
+  { word: "snow", hint: "Falls in winter, cold and white." },
+  { word: "box", hint: "Used to store things." },
+  { word: "phone", hint: "Used to call someone." },
+  { word: "glass", hint: "Transparent and breakable." },
+  { word: "star", hint: "Shines in the night sky." },
+  { word: "clock", hint: "Tells time." },
+  { word: "key", hint: "Used to unlock things." },
+  { word: "bag", hint: "Used to carry items." },
+  { word: "ice", hint: "Frozen water." },
+  { word: "egg", hint: "Comes from a chicken." },
+  { word: "carrot", hint: "An orange vegetable." },
+  { word: "cow", hint: "Gives milk." },
+  { word: "bed", hint: "You sleep on it." },
+  { word: "shirt", hint: "You wear it on your upper body." },
+  { word: "coin", hint: "A small round money piece." },
+  { word: "soap", hint: "Used to clean your hands." },
+  { word: "fan", hint: "Blows air to cool you." },
+  { word: "moon", hint: "Appears at night, orbits Earth." },
+
+  // 🟡 Medium
+  { word: "helmet", hint: "Protects your head." },
+  { word: "anchor", hint: "Keeps a ship in place." },
+  { word: "ladder", hint: "Used to climb." },
+  { word: "window", hint: "You look outside through it." },
+  { word: "rocket", hint: "Goes to space." },
+  { word: "planet", hint: "Orbits a star." },
+  { word: "jungle", hint: "A dense forest." },
+  { word: "artist", hint: "Creates drawings or paintings." },
+  { word: "gloves", hint: "Worn on hands in winter." },
+  { word: "shadow", hint: "Dark shape formed in light." },
+  { word: "castle", hint: "Home of kings and queens." },
+  { word: "dragon", hint: "Mythical creature that breathes fire." },
+  { word: "magnet", hint: "Attracts metal." },
+  { word: "carpet", hint: "Covers the floor." },
+  { word: "button", hint: "Used to fasten clothes." },
+  { word: "whistle", hint: "Makes a high-pitched sound." },
+  { word: "giraffe", hint: "Animal with a long neck." },
+  { word: "candle", hint: "Wax with a wick to burn." },
+  { word: "camera", hint: "Used to take pictures." },
+  { word: "rocket", hint: "Launches into space." },
+  { word: "bucket", hint: "Used to carry water." },
+  { word: "parrot", hint: "Colorful bird that talks." },
+  { word: "turtle", hint: "Slow animal with a shell." },
+  { word: "pillow", hint: "Rest your head on it." },
+  { word: "mirror", hint: "Reflects your image." },
+
+  // 🔴 Difficult / Abstract
+  { word: "voyage", hint: "A long journey, often by sea." },
+  { word: "galaxy", hint: "A system of stars." },
+  { word: "ember", hint: "Glowing coal from fire." },
+  { word: "cipher", hint: "A secret code or algorithm." },
+  { word: "thirst", hint: "Need for water." },
+  { word: "zephyr", hint: "A soft breeze." },
+  { word: "echo", hint: "Sound that repeats." },
+  { word: "flame", hint: "Part of a fire." },
+  { word: "whirl", hint: "To spin around." },
+  { word: "spine", hint: "Backbone of a human." },
+  { word: "marble", hint: "A smooth stone or glass ball." },
+  { word: "anklet", hint: "Jewelry worn around the ankle." },
+  { word: "cactus", hint: "A spiky desert plant." },
+  { word: "tunnel", hint: "A passage underground." },
+  { word: "vessel", hint: "A container or ship." },
+  { word: "riddle", hint: "A puzzling question." },
+  { word: "spiral", hint: "A curve that winds around." },
+  { word: "compass", hint: "Shows direction." },
+  { word: "talent", hint: "Natural skill or ability." },
+  { word: "vault", hint: "Secure place for valuables." },
+  { word: "signal", hint: "Indicates action or message." },
+  { word: "eclipse", hint: "One body blocks light from another." },
+  { word: "mirage", hint: "Illusion caused by heat." },
+  { word: "plague", hint: "A deadly widespread disease." },
+  { word: "turret", hint: "Small tower on a building or tank." },
+
+  // Bonus Easy & Fun
+  { word: "zebra", hint: "Striped black and white animal." },
+  { word: "peach", hint: "A soft, fuzzy fruit." },
+  { word: "jeans", hint: "Denim pants." },
+  { word: "cloud", hint: "Floats in the sky." },
+  { word: "donut", hint: "Sweet ring-shaped treat." },
+  { word: "daisy", hint: "White flower with yellow center." },
+  { word: "snail", hint: "Slow animal with a shell." },
+  { word: "broom", hint: "Used for sweeping." },
+  { word: "grape", hint: "Small round purple or green fruit." },
+  { word: "swing", hint: "Playground seat that moves back and forth." },
+  { word: "toast", hint: "Bread browned with heat." },
+  { word: "lemon", hint: "Sour yellow fruit." },
+  { word: "train", hint: "Runs on tracks." },
+  { word: "socks", hint: "Worn on your feet." },
+  { word: "robot", hint: "Mechanical helper." },
+  { word: "brush", hint: "Used to paint or clean." }
+    ];
+  
+    let currentWord = "";
+    let hint = "";
+    let guessedLetters = [];
+    let wrongGuesses = 0;
+    let score = 0;
+    let highScore = localStorage.getItem("hangmanHighScore") || 0;
+  
+    const parts = ["head", "body", "arm-left", "arm-right", "leg-left", "leg-right"];
+  
+    const scoreboard = document.getElementById("scoreboard");
+  
+    function showGameScreen() {
+      document.getElementById("start-screen").style.display = "none";
+      document.getElementById("game-screen").style.display = "block";
+      scoreboard.innerText = `Score: ${score} | High Score: ${highScore}`;
+      startGame();
+    }
+  
+    function showExitScreen() {
+      document.getElementById("start-screen").style.display = "none";
+      document.getElementById("exit-screen").style.display = "block";
+    }
+  
+    function startGame() {
+      const random = words[Math.floor(Math.random() * words.length)];
+      currentWord = random.word.toUpperCase();
+      hint = random.hint;
+      guessedLetters = [];
+      wrongGuesses = 0;
+      parts.forEach(p => document.querySelector("." + p).style.display = "none");
+      document.getElementById("hint").style.display = "none";
+      document.getElementById("message").innerText = "";
+      clearFireworks();
+      displayWord();
+      createLetters();
+    }
+  
+    function displayWord() {
+      const wordDisplay = currentWord
+        .split("")
+        .map(letter => guessedLetters.includes(letter) ? letter : "_")
+        .join(" ");
+      document.getElementById("word-display").innerText = wordDisplay;
+    }
+  
+    function createLetters() {
+      const lettersContainer = document.getElementById("letters");
+      lettersContainer.innerHTML = "";
+      for (let i = 65; i <= 90; i++) {
+        const letter = String.fromCharCode(i);
+        const btn = document.createElement("div");
+        btn.innerText = letter;
+        btn.classList.add("letter");
+        btn.onclick = () => handleGuess(letter, btn);
+        lettersContainer.appendChild(btn);
+      }
+    }
+  
+    function handleGuess(letter, btn) {
+      if (guessedLetters.includes(letter)) return;
+      guessedLetters.push(letter);
+      btn.classList.add("used");
+  
+      if (currentWord.includes(letter)) {
+        document.getElementById("sound-correct").play();
+        displayWord();
+        if (!document.getElementById("word-display").innerText.includes("_")) {
+          score++;
+          if (score > highScore) {
+            highScore = score;
+            localStorage.setItem("hangmanHighScore", highScore);
+          }
+          scoreboard.innerText = `Score: ${score} | High Score: ${highScore}`;
+          document.getElementById("message").innerText = "🎉 Correct! Next round!";
+          launchFireworks();
+        }
+      } else {
+        document.getElementById("sound-wrong").play();
+        document.querySelector("." + parts[wrongGuesses]).style.display = "block";
+        wrongGuesses++;
+        if (wrongGuesses === 2) {
+          document.getElementById("hint").style.display = "block";
+          document.getElementById("hint").innerText = "Hint: " + hint;
+        }
+        if (wrongGuesses >= parts.length) {
+          document.getElementById("message").innerText = `💀 Game Over! Word was: ${currentWord}`;
+          score = 0;
+          scoreboard.innerText = `Score: ${score} | High Score: ${highScore}`;
+        }
+      }
+    }
+  
+    // 🎆 Fireworks
+    const canvas = document.createElement("canvas");
+    canvas.style.position = "fixed";
+    canvas.style.top = "0";
+    canvas.style.left = "0";
+    canvas.style.zIndex = "9999";
+    canvas.style.pointerEvents = "none";
+    canvas.style.display = "none";
+    document.body.appendChild(canvas);
+    const ctx = canvas.getContext("2d");
+    let fireworks = [];
+  
+    function launchFireworks() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      canvas.style.display = "block";
+      for (let i = 0; i < 50; i++) {
+        fireworks.push({
+          x: window.innerWidth / 2,
+          y: window.innerHeight / 2,
+          dx: Math.random() * 4 - 2,
+          dy: Math.random() * -4 - 1,
+          radius: Math.random() * 3 + 2,
+          color: `hsl(${Math.random() * 360}, 100%, 50%)`,
+          life: 100
+        });
+      }
+      animateFireworks();
+    }
+  
+    function animateFireworks() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      fireworks.forEach((p, index) => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, 2 * Math.PI);
+        ctx.fillStyle = p.color;
+        ctx.fill();
+        p.x += p.dx;
+        p.y += p.dy;
+        p.dy += 0.05;
+        p.life -= 1;
+        if (p.life <= 0) fireworks.splice(index, 1);
+      });
+      if (fireworks.length > 0) {
+        requestAnimationFrame(animateFireworks);
+      } else {
+        setTimeout(() => canvas.style.display = "none", 500);
+      }
+    }
+  
+    function clearFireworks() {
+      fireworks = [];
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      canvas.style.display = "none";
+    }
+  </script>  
+</body>
+</html>
